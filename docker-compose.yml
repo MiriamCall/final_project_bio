@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: davedockerfile
+    container_name: biodrop-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    env_file:
+      - .env.docker
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - biodrop-network
+
+  mongo:
+    image: mongo:6
+    container_name: biodrop-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=biodrop
+    restart: unless-stopped
+    networks:
+      - biodrop-network
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  biodrop-network:
+    driver: bridge
