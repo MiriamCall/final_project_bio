@@ -78,8 +78,8 @@ resource "aws_instance" "app" {
               cd /home/ec2-user
 
               # grab the docker image from dockerhub. We need to make sure we update the user name
-              docker pull davidyem/biodrop:latest
-              docker run -d -p 3000:3000 davidyem/biodrop:latest
+              docker pull daveyem/biodrop:latest
+              docker run -d -p 3000:3000 daveyem/biodrop:latest
 
 
 
