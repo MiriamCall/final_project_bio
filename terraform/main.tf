@@ -39,8 +39,8 @@ resource "aws_security_group" "web_sg" {
 
   ingress {
     description = "Allow HTTP from anywhere"
-    from_port   = 80
-    to_port     = 80
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -78,8 +78,8 @@ resource "aws_instance" "app" {
               cd /home/ec2-user
 
               # grab the docker image from dockerhub. We need to make sure we update the user name
-              docker pull final_project/Biodrop:latest
-              docker run -d -p 80:8080 final_project/Biodrop:latest
+              docker pull davidyem/biodrop:latest
+              docker run -d -p 3000:3000 davidyem/biodrop:latest
 
 
 
