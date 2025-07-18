@@ -1,74 +1,61 @@
-name: Releases
-on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "data/**"
+# Name shown in GitHub Actions
+name: Terraform Release Pipeline
 
-concurrency:
-  group: "main-branch"
+# Manually trigger this workflow with temporary AWS credentials
+on:
+  workflow_dispatch:
+    inputs:
+      AWS_ACCESS_KEY_ID:
+        description: "Temporary AWS Access Key ID"
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        description: "Temporary AWS Secret Access Key"
+        required: true
+      AWS_SESSION_TOKEN:
+        description: "Temporary AWS Session Token"
+        required: true
 
 jobs:
-  changelog:
-    if: github.repository == 'EddieHubCommunity/BioDrop'
+  terraform-deploy:
+    name: Deploy with Terraform
     runs-on: ubuntu-latest
 
     steps:
-      # check out the repository with all releases
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      # Check out the repo code
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      # Create a temporary, uniquely named branch to push release info to
-      - name: create temporary branch
-        run: git branch "release-from-${{ github.sha }}" "${{ github.sha }}"
-
-      # switch to the temporary branch
-      - name: switch to new branch
-        run: git checkout release-from-${{ github.sha }}
-
-      # update app config with version
-      - name: get-npm-version
-        id: package-version
+      # Set AWS session credentials as environment variables
+      - name: Set AWS Credentials
         run: |
-          LF_VERSION=$(cat package.json | jq -r '.version')
-          echo "current-version=$LF_VERSION" >> "$GITHUB_OUTPUT"
-      - name: update app config
-        run: sed -i 's/0.0.0/${{ steps.package-version.outputs.current-version}}/g' config/app.json
+          echo "AWS_ACCESS_KEY_ID=${{ github.event.inputs.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ github.event.inputs.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=${{ github.event.inputs.AWS_SESSION_TOKEN }}" >> $GITHUB_ENV
 
-      # create release info and push it upstream
-      - name: conventional Changelog Action
-        id: changelog
-        uses: TriPSs/conventional-changelog-action@v3
+      # Install a specific version of Terraform
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          version-file: "./package.json,./package-lock.json,./config/app.json"
-          git-branch: "release-from-${{ github.sha }}"
-          skip-git-pull: true
+          terraform_version: 1.5.7
 
-      # create PR using GitHub CLI
-      - name: create PR with release info
-        if: steps.changelog.outputs.skipped == 'false'
-        id: create-pr
-        run: gh pr create --base main --head release-from-${{ github.sha }} --title 'Merge new release into main' --body 'Created by Github action'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Init in the iac directory
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./iac
 
-      # merge PR using GitHub CLI
-      - name: merge PR with release info
-        if: steps.changelog.outputs.skipped == 'false'
-        id: merge-pr
-        run: gh pr merge --admin --merge --subject 'Merge release info'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Plan the Terraform execution
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./iac
 
-      # release info is now in main so we can continue as before
-      - name: create release with last commit
-        if: steps.changelog.outputs.skipped == 'false'
-        uses: ncipollo/release-action@v1
+      # Apply changes
+      - name: Terraform Apply
+        run: terraform apply --auto-approve
+        working-directory: ./iac
+
+      #Upload the tf state to allow for git action destroy
+      - name: Upload Terraform state
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CHANGELOG_RELEASE }}
-          tag: ${{ steps.changelog.outputs.tag }}
-          name: ${{ steps.changelog.outputs.tag }}
-          body: ${{ steps.changelog.outputs.clean_changelog }}
+          name: terraform-state
+          path: iac/terraform.tfstate

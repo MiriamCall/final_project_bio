@@ -9,6 +9,9 @@
 /.next/
 /out/
 
+# terraform
+.terraform
+
 # misc
 .DS_Store
 .idea/
