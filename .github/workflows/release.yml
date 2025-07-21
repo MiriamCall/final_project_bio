@@ -41,17 +41,17 @@ jobs:
       # Init in the iac directory
       - name: Terraform Init
         run: terraform init
-        working-directory: ./iac
+        working-directory: ./terraform
 
       # Plan the Terraform execution
       - name: Terraform Plan
         run: terraform plan
-        working-directory: ./iac
+        working-directory: ./terraform
 
       # Apply changes
       - name: Terraform Apply
         run: terraform apply --auto-approve
-        working-directory: ./iac
+        working-directory: ./terraform
 
       #Upload the tf state to allow for git action destroy
       - name: Upload Terraform state
