@@ -69,17 +69,17 @@ resource "aws_instance" "app" {
 
   # User data script to deploy the app from GitHub
   user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              amazon-linux-extras install docker -y
-              service docker start
-              usermod -a -G docker ec2-user
-              yum install git -y
-              cd /home/ec2-user
+#!/bin/bash
+yum update -y
+amazon-linux-extras install docker -y
+service docker start
+usermod -a -G docker ec2-user
+yum install git -y
+cd /home/ec2-user
 
-              # grab the docker image from dockerhub. We need to make sure we update the user name
-              docker pull daveyem/biodrop:latest
-              docker run -d -p 3000:3000 daveyem/biodrop:latest
+# grab the docker image from dockerhub. We need to make sure we update the user name
+docker pull daveyem/biodrop:latest
+docker run -d -p 3000:3000 daveyem/biodrop:latest
 
 
 
